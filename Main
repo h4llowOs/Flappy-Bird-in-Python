@@ -1,0 +1,115 @@
+import pygame
+import random
+import sys
+
+# init pygame
+pygame.init()
+
+# constants
+WIDTH, HEIGHT = 400, 600
+GRAVITY = 0.5
+JUMP_STRENGTH = -10
+PIPE_SPEED = 3
+PIPE_GAP = 150
+FPS = 60
+
+# colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+BLUE = (0, 162, 232)
+GREEN = (0, 200, 0)
+RED = (255, 0, 0)
+
+# setup screen
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Flappy Bird Clone")
+
+# fonts
+font = pygame.font.SysFont(None, 48)
+
+# clock
+clock = pygame.time.Clock()
+
+# bird
+bird = pygame.Rect(100, HEIGHT//2, 30, 30)
+bird_velocity = 0
+
+# pipes
+pipes = []
+SPAWN_PIPE = pygame.USEREVENT
+pygame.time.set_timer(SPAWN_PIPE, 1500)
+
+score = 0
+
+def draw_bird():
+    pygame.draw.rect(screen, BLUE, bird)
+
+def draw_pipes():
+    for pipe in pipes:
+        pygame.draw.rect(screen, GREEN, pipe)
+
+def check_collision():
+    if bird.top <= 0 or bird.bottom >= HEIGHT:
+        return True
+    for pipe in pipes:
+        if bird.colliderect(pipe):
+            return True
+    return False
+
+def display_score():
+    score_text = font.render(str(score), True, WHITE)
+    screen.blit(score_text, (WIDTH//2 - score_text.get_width()//2, 20))
+
+def main():
+    global bird_velocity, pipes, bird, score
+    running = True
+    while running:
+        clock.tick(FPS)
+        screen.fill(BLACK)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    bird_velocity = JUMP_STRENGTH
+            if event.type == SPAWN_PIPE:
+                height = random.randint(100, HEIGHT - 100 - PIPE_GAP)
+                top_pipe = pygame.Rect(WIDTH, 0, 50, height)
+                bottom_pipe = pygame.Rect(WIDTH, height + PIPE_GAP, 50, HEIGHT - height - PIPE_GAP)
+                pipes.extend([top_pipe, bottom_pipe])
+
+        # bird movement
+        bird_velocity += GRAVITY
+        bird.y += bird_velocity
+
+        # pipes movement
+        for pipe in pipes:
+            pipe.x -= PIPE_SPEED
+
+        # remove offscreen pipes & score
+        pipes = [pipe for pipe in pipes if pipe.right > 0]
+        for pipe in pipes:
+            if pipe.centerx == bird.centerx:
+                score += 0.5  # each pipe pair counts as 1
+
+        draw_bird()
+        draw_pipes()
+        display_score()
+
+        if check_collision():
+            running = False
+
+        pygame.display.flip()
+
+    # game over
+    game_over_text = font.render("GAME OVER", True, RED)
+    screen.blit(game_over_text, (WIDTH//2 - game_over_text.get_width()//2, HEIGHT//2 - 50))
+    pygame.display.flip()
+    pygame.time.wait(2000)
+    pygame.quit()
+    sys.exit()
+
+if __name__ == "__main__":
+    main()
